@@ -23,6 +23,28 @@ from plyfile import PlyData, PlyElement
 from utils.sh_utils import SH2RGB
 from scene.gaussian_model import BasicPointCloud
 
+def read_txt(txt_file_list):
+    '''
+    read txt files and output a matrix.
+    :param exr_file_list:
+    :return:
+    '''
+    if isinstance(txt_file_list, str):
+        txt_file_list = [txt_file_list]
+
+    output_list = []
+    for txt_file in txt_file_list:
+        output_list.append(np.loadtxt(txt_file))
+
+    return np.array(output_list)
+
+
+number_of_views = 252
+camera_path = "./camers_settings/"
+cam_RT_dir = [os.path.join(camera_path, 'cam_RT', 'cam_RT_{0:03d}.txt'.format(view_id+1)) for view_id in range(number_of_views)]
+#cam_K = np.loadtxt(os.path.join(camera_path, 'cam_K/cam_K.txt'))
+cam_RTs = read_txt(cam_RT_dir)
+
 class CameraInfo(NamedTuple):
     uid: int
     R: np.array
@@ -79,8 +101,11 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
         width = intr.width
 
         uid = intr.id
-        R = np.transpose(qvec2rotmat(extr.qvec))
-        T = np.array(extr.tvec)
+        #R = np.transpose(qvec2rotmat(extr.qvec))
+        #T = np.array(extr.tvec)
+
+        R = cam_RTs[idx][:3, :3]
+        T = cam_RTs[idx][:3, 3] 
 
         if intr.model=="SIMPLE_PINHOLE":
             focal_length_x = intr.params[0]

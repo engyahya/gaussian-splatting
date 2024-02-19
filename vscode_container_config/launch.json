@@ -1,0 +1,21 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    // To build for debug, call: catkin_make -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "ROS: yolo.launch",
+            "request": "launch",
+            "target": "/home/appuser/ros_ws/src/nn4ros/launch/yolo.launch",
+            "launch": [
+                "rviz",
+                "gz",
+                "gzclient",
+                "gzserver"
+            ],
+            "type": "ros"
+        }
+    ]
+}

@@ -1,0 +1,28 @@
+version: "3.8"
+services:
+  splat:
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+    build: .
+    image: yahya/gaussian-splatting:cuda-11.7
+    #command: sleep infinity
+    #command: jupyter notebook --no-browser
+    #network_mode: host
+    environment:
+      - DISPLAY
+    volumes:
+      - type: bind
+        source: .
+        target: /gaussian_splatting
+      - type: bind
+        source: ./Datasets
+        target: /gaussian_splatting/datasets
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              # count: 1
+              device_ids: ['0']
+              capabilities: [gpu]

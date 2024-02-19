@@ -1,0 +1,1 @@
+Namespace(sh_degree=3, source_path='/home/appuser/gaussian/main_code/Datasets/car3', model_path='Datasets/car3/output/', images='images', resolution=-1, white_background=True, data_device='cuda', eval=False)
