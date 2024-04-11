@@ -22,6 +22,7 @@ from tqdm import tqdm
 from utils.image_utils import psnr
 from argparse import ArgumentParser, Namespace
 from arguments import ModelParams, PipelineParams, OptimizationParams
+import cv2
 try:
     from torch.utils.tensorboard import SummaryWriter
     TENSORBOARD_FOUND = True
@@ -48,6 +49,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     ema_loss_for_log = 0.0
     progress_bar = tqdm(range(first_iter, opt.iterations), desc="Training progress")
     first_iter += 1
+
+    #print("\n[ITER {}] Saving Gaussians".format(first_iter))
+    #scene.save(first_iter)
+
     for iteration in range(first_iter, opt.iterations + 1):        
         if network_gui.conn == None:
             network_gui.try_connect()
@@ -77,6 +82,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             viewpoint_stack = scene.getTrainCameras().copy()
         viewpoint_cam = viewpoint_stack.pop(randint(0, len(viewpoint_stack)-1))
 
+        #print("viewpoint_cam", viewpoint_cam.uid)
+
         # Render
         if (iteration - 1) == debug_from:
             pipe.debug = True
@@ -85,9 +92,19 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         render_pkg = render(viewpoint_cam, gaussians, pipe, bg)
         image, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
+        #print (image.shape)
+        #save image using cv2 library and the name of the image is the iteration number
+        imagebrg = image.detach().cpu().numpy().transpose(1, 2, 0) * 255
+        imagergb = cv2.cvtColor(imagebrg, cv2.COLOR_BGR2RGB)
+        cv2.imwrite('images/image_{}.png'.format(viewpoint_cam.uid), imagergb) 
 
         # Loss
         gt_image = viewpoint_cam.original_image.cuda()
+
+        #gt_imagebrg = gt_image.detach().cpu().numpy().transpose(1, 2, 0) * 255
+        #gt_imagergb = cv2.cvtColor(gt_imagebrg, cv2.COLOR_BGR2RGB)
+        #cv2.imwrite('images/gt_image_{}.png'.format(viewpoint_cam.uid), gt_imagergb)
+
         Ll1 = l1_loss(image, gt_image)
         loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))
         loss.backward()
@@ -105,9 +122,25 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
             # Log and save
             training_report(tb_writer, iteration, Ll1, loss, l1_loss, iter_start.elapsed_time(iter_end), testing_iterations, scene, render, (pipe, background))
+            
+            #if (iteration == 700):
+            #    print("\n[ITER {}] Saving Gaussians".format(iteration))
+            #    scene.save(iteration)
+
+            #if (iteration == 800):
+            #    print("\n[ITER {}] Saving Gaussians".format(iteration))
+            #    scene.save(iteration)
+
+            #if (iteration == 900):
+            #    print("\n[ITER {}] Saving Gaussians".format(iteration))
+            #    scene.save(iteration)
+            
+            
             if (iteration in saving_iterations):
                 print("\n[ITER {}] Saving Gaussians".format(iteration))
                 scene.save(iteration)
+            #print ("iteration: ", iteration, "NO: ", gaussians.get_xyz.shape[0])
+            #/home/mplab/Projects/test_gaussian-splatting/gausss/images/image_2.pngprint (gaussians.get_xyz.shape[0])
 
             # Densification
             if iteration < opt.densify_until_iter:
@@ -203,7 +236,7 @@ if __name__ == "__main__":
     parser.add_argument("--test_iterations", nargs="+", type=int, default=[7_000, 30_000])
     parser.add_argument("--save_iterations", nargs="+", type=int, default=[7_000, 30_000])
     parser.add_argument("--quiet", action="store_true")
-    parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
+    parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[7_000, 30_000])
     parser.add_argument("--start_checkpoint", type=str, default = None)
     args = parser.parse_args(sys.argv[1:])
     args.save_iterations.append(args.iterations)

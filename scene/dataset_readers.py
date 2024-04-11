@@ -34,13 +34,16 @@ def read_txt(txt_file_list):
 
     output_list = []
     for txt_file in txt_file_list:
+        print (txt_file)
         output_list.append(np.loadtxt(txt_file))
 
     return np.array(output_list)
 
 
-number_of_views = 252
-camera_path = "./camers_settings/"
+number_of_views = 503 #6 #179 for carla   # 503 for shapenet #
+camera_path = "./camers_settings" #"./camers_settings_old_shaape_253/"
+#for view_id in range(number_of_views):
+    #print(view_id)
 cam_RT_dir = [os.path.join(camera_path, 'cam_RT', 'cam_RT_{0:03d}.txt'.format(view_id+1)) for view_id in range(number_of_views)]
 #cam_K = np.loadtxt(os.path.join(camera_path, 'cam_K/cam_K.txt'))
 cam_RTs = read_txt(cam_RT_dir)
@@ -90,42 +93,102 @@ def getNerfppNorm(cam_info):
 def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
     cam_infos = []
     for idx, key in enumerate(cam_extrinsics):
-        sys.stdout.write('\r')
-        # the exact output you're looking for:
-        sys.stdout.write("Reading camera {}/{}".format(idx+1, len(cam_extrinsics)))
-        sys.stdout.flush()
+        #print ("key", key)
+        #print ("idx", idx)
 
-        extr = cam_extrinsics[key]
-        intr = cam_intrinsics[extr.camera_id]
-        height = intr.height
-        width = intr.width
+        #if(key - 1 in [120, 135, 150, 165, 180, 195, 210, 225, 240]):
+        #if(key - 1 in [3, 12, 20, 29, 315, 295, 335, 360]):
+        if (key- 1  in [300, 315, 330, 345, 350, 365, 380, 395]):
 
-        uid = intr.id
-        #R = np.transpose(qvec2rotmat(extr.qvec))
-        #T = np.array(extr.tvec)
+            sys.stdout.write('\r')
+            # the exact output you're looking for:
+            sys.stdout.write("Reading camera {}/{}".format(idx+1, len(cam_extrinsics)))
+            sys.stdout.flush()
 
-        R = cam_RTs[idx][:3, :3]
-        T = cam_RTs[idx][:3, 3] 
+            extr = cam_extrinsics[key]
+            intr = cam_intrinsics[extr.camera_id]
+            #height = intr.height
+            #width = intr.width
+            #print ("height", height)
+            #print ("width", width)
 
-        if intr.model=="SIMPLE_PINHOLE":
-            focal_length_x = intr.params[0]
-            FovY = focal2fov(focal_length_x, height)
-            FovX = focal2fov(focal_length_x, width)
-        elif intr.model=="PINHOLE":
-            focal_length_x = intr.params[0]
-            focal_length_y = intr.params[1]
+
+            uid = intr.id
+            #print ("uid", uid)
+            #uid = 1
+            #print ("key      ><<<<< ",key)
+            #print("ddddddddddddddd" ,uid)
+            #print("key", key)
+            #R = np.transpose(qvec2rotmat(extr.qvec))
+            #T = np.array(extr.tvec)
+
+            #print( extr.camera_id, "."*5 ,idx)
+
+            #R = np.transpose(cam_RTs[key-1][:3, :3])
+            #R = cam_RTs[key-1][:3, :3]
+            #T =cam_RTs[key-1][:3, 3] 
+            R = np.transpose(cam_RTs[key ][:3, :3])
+            #R = cam_RTs[key ][:3, :3]
+            T = cam_RTs[key ][:3, 3]
+
+
+            #focal_length_x = 560 
+            #focal_length_y = 560
+            #focal_length_x = intr.params[0]
+            #focal_length_y = intr.params[1]
+            
+            
+            width = 512
+            height = 512        
+            focal_length_x = 560 
+            focal_length_y = 560
+            
+            #width = 256
+            #height = 256        
+            #focal_length_x = 480 
+            #focal_length_y = 480
+
+            
             FovY = focal2fov(focal_length_y, height)
+            #print ("FovY", FovY)
             FovX = focal2fov(focal_length_x, width)
-        else:
-            assert False, "Colmap camera model not handled: only undistorted datasets (PINHOLE or SIMPLE_PINHOLE cameras) supported!"
+            #print ("FovX", FovX) 
+            
+            
+            #FovX = 1.5708   
+            #FovY = 1.5708
 
-        image_path = os.path.join(images_folder, os.path.basename(extr.name))
-        image_name = os.path.basename(image_path).split(".")[0]
-        image = Image.open(image_path)
+            
+            if intr.model=="SIMPLE_PINHOLE":
+                focal_length_x = intr.params[0]
+                FovX = focal2fov(focal_length_x, width)
+            elif intr.model=="PINHOLE":
+                #print ("Enter PINHOLE")
+                focal_length_x = intr.params[0]
+                focal_length_y = intr.params[1]
+                focal_length_x = 560 
+                focal_length_y = 560
+                FovY = focal2fov(focal_length_y, height)
+                FovX = focal2fov(focal_length_x, width)
+            else:
+                assert False, "Colmap camera model not handled: only undistorted datasets (PINHOLE or SIMPLE_PINHOLE cameras) supported!"
+            
+            #print ("dddddddddddddd", uid)
+            #print ("extr.name", extr.name)
+            # print uid in three digits format and with .jpg extension
+            #print (os.path.join(images_folder, "{:03d}.jpg".format(uid)))
+            #print ("extr.name")
+            #print ((extr.name))
+            image_path = os.path.join(images_folder, os.path.basename(extr.name))
+            image_name = os.path.basename(image_path).split(".")[0]
+            #print (image_path)
+            #print (image_name)
+            #image_path = os.path.join(images_folder, "{:03d}.jpg".format(uid))
+            image = Image.open(image_path)
 
-        cam_info = CameraInfo(uid=uid, R=R, T=T, FovY=FovY, FovX=FovX, image=image,
-                              image_path=image_path, image_name=image_name, width=width, height=height)
-        cam_infos.append(cam_info)
+            cam_info = CameraInfo(uid=uid, R=R, T=T, FovY=FovY, FovX=FovX, image=image,
+                                image_path=image_path, image_name=image_name, width=width, height=height)
+            cam_infos.append(cam_info)
     sys.stdout.write('\n')
     return cam_infos
 
